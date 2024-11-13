@@ -1,0 +1,21 @@
+PATH
+  remote: .
+  specs:
+    pg-replication-protocol (0.0.1)
+      pg (~> 1.0)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    pg (1.5.9)
+    rake (13.2.1)
+
+PLATFORMS
+  x86_64-linux
+
+DEPENDENCIES
+  pg-replication-protocol!
+  rake (~> 13.0)
+
+BUNDLED WITH
+   2.4.1

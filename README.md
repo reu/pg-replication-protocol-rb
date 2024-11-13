@@ -1,0 +1,1 @@
+# Pg::Replication::Protocol
