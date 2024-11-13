@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require_relative "buffer"
+require_relative "protocol"
+
 module PG
   module Replication
     class Stream
@@ -17,8 +20,7 @@ module PG
 
           case @connection.get_copy_data(async: true)
           in nil
-            @connection.get_last_result
-            break
+            return @connection.get_last_result
           in false
             IO.select([@connection.socket_io], nil, nil)
             next

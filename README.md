@@ -1,4 +1,12 @@
-# PG::Replication::Protocol
+# PG::Replication
+
+## Usage
+
+Add to your Gemfile:
+
+```ruby
+gem "pg-replication-protocol", require: "pg/replication"
+```
 
 ## Demo
 
@@ -20,8 +28,7 @@ tables = {}
 connection.start_pgoutput_replication_slot(slot, publications).each do |msg|
   case msg
   in PG::Replication::PGOutput::Relation(oid:, name:, columns:)
-    # Also on a real world you will only receive this message once
-    # (or when there is a change on the schema)
+    # We receive this message on the first row of each table
     tables[oid] = { name:, columns: }
 
   in PG::Replication::PGOutput::Begin
