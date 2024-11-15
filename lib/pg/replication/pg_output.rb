@@ -14,7 +14,11 @@ module PG
       Delete = Data.define(:oid, :old)
       Truncate = Data.define(:oid)
       Tuple = Data.define(:type, :data)
-      Column = Data.define(:flags, :name, :oid, :modifier)
+      Column = Data.define(:flags, :name, :oid, :modifier) do
+        def key?
+          flags == 1
+        end
+      end
 
       def self.read_message(buffer)
         case buffer.read_char
@@ -39,7 +43,7 @@ module PG
           )
 
         in "C"
-          buffer.read_int8 # Unused bytes
+          buffer.read_int8 # Unused byte
           PGOutput::Commit.new(
             lsn: buffer.read_int64,
             end_lsn: buffer.read_int64,
@@ -55,21 +59,16 @@ module PG
         in "R"
           PGOutput::Relation.new(
             oid: buffer.read_int32,
-            namespace: buffer.read_cstring,
+            namespace: buffer.read_cstring.then { |ns| ns == "" ? "pg_catalog" : ns },
             name: buffer.read_cstring,
-            replica_identity: buffer.read_int8,
-            columns: case buffer.read_int16
-              in 0
-                []
-              in size
-                size.times.map do
-                  PGOutput::Column.new(
-                    flags: buffer.read_int8,
-                    name: buffer.read_cstring,
-                    oid: buffer.read_int32,
-                    modifier: buffer.read_int32,
-                  )
-                end
+            replica_identity: buffer.read_char,
+            columns: buffer.read_int16.times.map do
+              PGOutput::Column.new(
+                flags: buffer.read_int8,
+                name: buffer.read_cstring,
+                oid: buffer.read_int32,
+                modifier: buffer.read_int32,
+              )
             end
           )
 
