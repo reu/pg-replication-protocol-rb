@@ -30,26 +30,6 @@ module PG
           end
         end
       end
-
-      def standby_status_update(
-        write_lsn:,
-        flush_lsn: write_lsn,
-        apply_lsn: write_lsn,
-        timestamp: Time.now,
-        reply: false
-      )
-        msg = [
-          "r".bytes.first,
-          write_lsn,
-          flush_lsn,
-          apply_lsn,
-          (timestamp - Time.new(2000, 1, 1, 0, 0, 0, 0)) * 10**6,
-          reply ? 1 : 0,
-        ].pack("CQ>Q>Q>Q>C")
-
-        @connection.put_copy_data(msg)
-        @connection.flush
-      end
     end
   end
 end
