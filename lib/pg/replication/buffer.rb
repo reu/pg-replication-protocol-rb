@@ -1,18 +1,13 @@
 # frozen_string_literal: true
 
+require "delegate"
 require "stringio"
 
 module PG
   module Replication
-    class Buffer
-      attr_reader :buffer
-
+    class Buffer < SimpleDelegator
       def self.from_string(str)
         new(StringIO.new(str))
-      end
-
-      def initialize(buffer)
-        @buffer = buffer
       end
 
       def read_char
@@ -24,19 +19,19 @@ module PG
       end
 
       def read_int8
-        @buffer.read(1).unpack("C").first
+        read(1).unpack("C").first
       end
 
       def read_int16
-        @buffer.read(2).unpack("n").first
+        read(2).unpack("n").first
       end
 
       def read_int32
-        @buffer.read(4).unpack("N").first
+        read(4).unpack("N").first
       end
 
       def read_int64
-        @buffer.read(8).unpack("Q>").first
+        read(8).unpack("Q>").first
       end
 
       def read_timestamp
@@ -54,14 +49,6 @@ module PG
             str << chr
           end
         end
-      end
-
-      def read(size = nil)
-        @buffer.read(size)
-      end
-
-      def eof?
-        @buffer.eof?
       end
     end
   end
