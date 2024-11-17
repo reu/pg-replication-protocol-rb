@@ -13,11 +13,15 @@ module PG
         SELECT setting FROM pg_catalog.pg_settings WHERE name = 'wal_receiver_status_interval'
       SQL
 
-      query(<<~SQL)
-        START_REPLICATION SLOT
-        #{slot} #{logical ? "LOGICAL" : "PHYSICAL"} #{location}
-        (#{params.map { |k, v| "#{quote_ident(k.to_s)} '#{escape_string(v.to_s)}'" }.join(", ")})
-      SQL
+      start_query = "START_REPLICATION SLOT #{slot} #{logical ? "LOGICAL" : "PHYSICAL"} #{location}"
+      unless params.empty?
+        start_query << "("
+        start_query << params
+          .map { |k, v| "#{quote_ident(k.to_s)} '#{escape_string(v.to_s)}'" }
+          .join(", ")
+        start_query << ")"
+      end
+      query(start_query)
 
       last_processed_lsn = 0
       last_keep_alive = Time.now

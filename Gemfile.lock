@@ -7,8 +7,31 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
+    diff-lcs (1.5.1)
+    docker-api (2.4.0)
+      excon (>= 0.64.0)
+      multi_json
+    excon (1.2.1)
+    multi_json (1.15.0)
     pg (1.5.9)
     rake (13.2.1)
+    rspec (3.13.0)
+      rspec-core (~> 3.13.0)
+      rspec-expectations (~> 3.13.0)
+      rspec-mocks (~> 3.13.0)
+    rspec-core (3.13.2)
+      rspec-support (~> 3.13.0)
+    rspec-expectations (3.13.3)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-mocks (3.13.2)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-support (3.13.1)
+    testcontainers-core (0.2.0)
+      docker-api (~> 2.2)
+    testcontainers-postgres (0.2.0)
+      testcontainers-core (~> 0.1)
 
 PLATFORMS
   x86_64-linux
@@ -16,6 +39,8 @@ PLATFORMS
 DEPENDENCIES
   pg-replication-protocol!
   rake (~> 13.0)
+  rspec (~> 3.0)
+  testcontainers-postgres
 
 BUNDLED WITH
    2.4.1
