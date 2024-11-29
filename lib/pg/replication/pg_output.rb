@@ -11,7 +11,7 @@ module PG
       Type = Data.define(:oid, :namespace, :name)
       Insert = Data.define(:oid, :new)
       Update = Data.define(:oid, :key, :old, :new)
-      Delete = Data.define(:oid, :old)
+      Delete = Data.define(:oid, :key, :old)
       Truncate = Data.define(:oid)
       Tuple = Data.define(:type, :data)
       Column = Data.define(:flags, :name, :oid, :modifier) do
@@ -115,14 +115,23 @@ module PG
           )
 
         in "D"
+          oid = buffer.read_int32
+          key = []
+          old = []
+
+          until buffer.eof?
+            case buffer.read_char
+            when "K"
+              key = PGOutput.read_tuples(buffer)
+            when "O"
+              old = PGOutput.read_tuples(buffer)
+            end
+          end
+
           PGOutput::Delete.new(
-            oid: buffer.read_int32,
-            old: case buffer.read_char
-              when "N", "K"
-                PGOutput.read_tuples(buffer)
-              else
-                []
-              end,
+            oid:,
+            key:,
+            old:,
           )
 
         in "T"

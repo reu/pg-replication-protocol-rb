@@ -69,6 +69,7 @@ RSpec.describe do
       expect(update.new[0].data).to eq("20")
 
       expect(delete).to match_pattern(PG::Replication::PGOutput::Delete)
+      expect(delete.old[0].data).to eq("20")
 
       expect(commit).to match_pattern(PG::Replication::PGOutput::Commit)
     end
