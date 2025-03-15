@@ -28,15 +28,18 @@ RSpec.describe do
       @pg.query("INSERT INTO test VALUES (10)")
       @pg.query("UPDATE test SET num = 20 WHERE num = 10")
       @pg.query("DELETE FROM test WHERE num = 20")
+      @pg.query("SELECT * FROM pg_logical_emit_message(true, 'test', 'message')")
       @pg.query("COMMIT")
 
       messages = @pg.start_replication_slot("test_slot")
-      begin_txn, insert, update, delete, commit_txn = messages.take(5).to_a
+      begin_txn, insert, update, delete, msg, commit_txn = messages.take(6).to_a
 
       expect(begin_txn).to include("BEGIN")
       expect(insert).to include("INSERT: num[integer]:10")
       expect(update).to include("num[integer]:20")
       expect(delete).to include("DELETE")
+      expect(msg).to include('test')
+      expect(msg).to include('message')
       expect(commit_txn).to include("COMMIT")
     end
   end
@@ -52,10 +55,11 @@ RSpec.describe do
       @pg.query("INSERT INTO test VALUES (10)")
       @pg.query("UPDATE test SET num = 20 WHERE num = 10")
       @pg.query("DELETE FROM test WHERE num = 20")
+      @pg.query("SELECT * FROM pg_logical_emit_message(true, 'test', 'message')")
       @pg.query("COMMIT")
 
-      messages = @pg.start_pgoutput_replication_slot("test_slot_pgoutput", ["test_pub"])
-      start, relation, insert, update, delete, commit = messages.take(6).to_a
+      messages = @pg.start_pgoutput_replication_slot("test_slot_pgoutput", ["test_pub"], messages: true)
+      start, relation, insert, update, delete, msg, commit = messages.take(7).to_a
 
       expect(start).to match_pattern(PG::Replication::PGOutput::Begin)
 
@@ -70,6 +74,10 @@ RSpec.describe do
 
       expect(delete).to match_pattern(PG::Replication::PGOutput::Delete)
       expect(delete.old[0].data).to eq("20")
+
+      expect(msg).to match_pattern(PG::Replication::PGOutput::Message)
+      expect(msg.prefix).to eq("test")
+      expect(msg.content).to eq("message")
 
       expect(commit).to match_pattern(PG::Replication::PGOutput::Commit)
     end

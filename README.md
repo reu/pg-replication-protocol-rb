@@ -1,5 +1,7 @@
 # PG::Replication
 
+Adds support to `pg` for listening to replication slots
+
 ## Usage
 
 Add to your Gemfile:
@@ -55,6 +57,9 @@ connection.start_pgoutput_replication_slot(slot, publications).each do |msg|
 
   in PG::Replication::PGOutput::Delete(oid:)
     puts "Delete #{tables[oid][:name]}"
+
+  in PG::Replication::PGOutput::Message(prefix:, content:)
+    puts "Message #{prefix}: #{content}"
 
   else
     nil
