@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    pg-replication-protocol (0.0.2)
+    pg-replication-protocol (0.0.3)
       pg (~> 1.0)
 
 GEM
@@ -34,6 +34,7 @@ GEM
       testcontainers-core (~> 0.1)
 
 PLATFORMS
+  arm64-darwin-23
   x86_64-linux
 
 DEPENDENCIES
