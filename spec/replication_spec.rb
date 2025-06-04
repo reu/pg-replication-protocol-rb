@@ -18,6 +18,15 @@ RSpec.describe do
     @pg.close
   end
 
+  def xlog_data(msg)
+    case msg
+    in PG::Replication::Protocol::XLogData(data:)
+      data
+    else
+      nil
+    end
+  end
+
   describe "#start_replication_slot" do
     before do
       @pg.query('CREATE_REPLICATION_SLOT test_slot TEMPORARY LOGICAL "test_decoding"')
@@ -32,7 +41,7 @@ RSpec.describe do
       @pg.query("COMMIT")
 
       messages = @pg.start_replication_slot("test_slot")
-      begin_txn, insert, update, delete, msg, commit_txn = messages.take(6).to_a
+      begin_txn, insert, update, delete, msg, commit_txn = messages.filter_map { xlog_data(_1) }.take(6).to_a
 
       expect(begin_txn).to include("BEGIN")
       expect(insert).to include("INSERT: num[integer]:10")
@@ -59,7 +68,7 @@ RSpec.describe do
       @pg.query("COMMIT")
 
       messages = @pg.start_pgoutput_replication_slot("test_slot_pgoutput", ["test_pub"], messages: true)
-      start, relation, insert, update, delete, msg, commit = messages.take(7).to_a
+      start, relation, insert, update, delete, msg, commit = messages.filter_map { xlog_data(_1) }.take(7).to_a
 
       expect(start).to match_pattern(PG::Replication::PGOutput::Begin)
 
