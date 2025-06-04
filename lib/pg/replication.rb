@@ -10,6 +10,7 @@ module PG
   module Replication
     def start_replication_slot(slot, logical: true, auto_keep_alive: true, location: "0/0", **params)
       keep_alive_secs = wal_receiver_status_interval
+      @last_confirmed_lsn = confirmed_slot_lsn(slot) || 0
 
       start_query = "START_REPLICATION SLOT #{slot} #{logical ? "LOGICAL" : "PHYSICAL"} #{location}"
       unless params.empty?
@@ -21,7 +22,6 @@ module PG
       end
       query(start_query)
 
-      @last_confirmed_lsn = 0
       last_keep_alive = Time.now
 
       Enumerator
@@ -110,6 +110,16 @@ module PG
       query(<<~SQL).getvalue(0, 0)&.to_i || 10
         SELECT setting FROM pg_catalog.pg_settings WHERE name = 'wal_receiver_status_interval'
       SQL
+    end
+
+    def confirmed_slot_lsn(slot)
+      lsn = query(<<~SQL).getvalue(0, 0)
+        SELECT confirmed_flush_lsn FROM pg_replication_slots WHERE slot_name = '#{slot}'
+      SQL
+      high, low = lsn.split("/")
+      (high.to_i(16) << 32) + low.to_i(16)
+    rescue StandardError
+      nil
     end
   end
 
