@@ -9,9 +9,7 @@ require_relative "replication/protocol"
 module PG
   module Replication
     def start_replication_slot(slot, logical: true, auto_keep_alive: true, location: "0/0", **params)
-      keep_alive_secs = query(<<~SQL).getvalue(0, 0)&.to_i || 10
-        SELECT setting FROM pg_catalog.pg_settings WHERE name = 'wal_receiver_status_interval'
-      SQL
+      keep_alive_secs = wal_receiver_status_interval
 
       start_query = "START_REPLICATION SLOT #{slot} #{logical ? "LOGICAL" : "PHYSICAL"} #{location}"
       unless params.empty?
@@ -23,14 +21,14 @@ module PG
       end
       query(start_query)
 
-      last_processed_lsn = 0
+      @last_confirmed_lsn = 0
       last_keep_alive = Time.now
 
       Enumerator
         .new do |y|
           loop do
             if auto_keep_alive && Time.now - last_keep_alive > keep_alive_secs
-              standby_status_update(write_lsn: last_processed_lsn)
+              standby_status_update(write_lsn: @last_confirmed_lsn)
               last_keep_alive = Time.now
             end
 
@@ -47,45 +45,40 @@ module PG
               next
 
             in data
-              buffer = Buffer.new(StringIO.new(data))
-              y << Protocol.read_message(buffer)
+              case (msg = Protocol.read_message(Buffer.new(StringIO.new(data))))
+              in Protocol::XLogData(lsn:, data:) if auto_keep_alive
+                standby_status_update(write_lsn: @last_confirmed_lsn)
+                last_keep_alive = Time.now
+                y << msg
+                @last_confirmed_lsn = lsn
+
+              in Protocol::PrimaryKeepalive(server_time:, asap: true) if auto_keep_alive
+                standby_status_update(write_lsn: @last_confirmed_lsn)
+                last_keep_alive = Time.now
+                y << msg
+
+              else
+                y << msg
+              end
             end
           end
         end
         .lazy
-        .map do |msg|
-          case msg
-          in Protocol::XLogData(lsn:, data:) if auto_keep_alive
-            last_processed_lsn = lsn
-            standby_status_update(write_lsn: last_processed_lsn)
-            last_keep_alive = Time.now
-            msg
-
-          in Protocol::PrimaryKeepalive(server_time:, asap: true) if auto_keep_alive
-            standby_status_update(write_lsn: last_processed_lsn)
-            last_keep_alive = Time.now
-            msg
-
-          else
-            msg
-          end
-        end
     end
 
     def start_pgoutput_replication_slot(slot, publication_names, **kwargs)
       publication_names = publication_names.join(",")
 
       start_replication_slot(slot, **kwargs.merge(proto_version: "1", publication_names:))
-        .filter_map do |msg|
+        .map do |msg|
           case msg
-          in Protocol::XLogData(data:)
-            data
+          in Protocol::XLogData(data:, lsn:)
+            data = data.force_encoding(internal_encoding)
+            msg.with(data: PGOutput.read_message(Buffer.from_string(data)))
           else
-            next
+            msg
           end
         end
-        .map { |data| data.force_encoding(internal_encoding) }
-        .map { |data| PGOutput.read_message(Buffer.from_string(data)) }
     end
 
     def standby_status_update(
@@ -106,6 +99,17 @@ module PG
 
       put_copy_data(msg)
       flush
+      @last_confirmed_lsn = [@last_confirmed_lsn, write_lsn].compact.max
+    end
+
+    def last_confirmed_lsn
+      @last_confirmed_lsn
+    end
+
+    def wal_receiver_status_interval
+      query(<<~SQL).getvalue(0, 0)&.to_i || 10
+        SELECT setting FROM pg_catalog.pg_settings WHERE name = 'wal_receiver_status_interval'
+      SQL
     end
   end
 

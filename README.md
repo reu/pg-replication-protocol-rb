@@ -30,23 +30,23 @@ tables = {}
 # The `messages: true` option is required to be able to decode `PG::Replication::PGOutput::Message`
 connection.start_pgoutput_replication_slot(slot, publications, messages: true).each do |msg|
   case msg
-  in PG::Replication::PGOutput::Relation(oid:, name:, columns:)
+  in PG::Replication::Protocol::XLogData(data: PG::Replication::PGOutput::Relation(oid:, name:, columns:))
     # This message is received on the first row of each table, or when there are schema changes
     tables[oid] = { name:, columns: }
 
-  in PG::Replication::PGOutput::Begin
+  in PG::Replication::Protocol::XLogData(data: PG::Replication::PGOutput::Begin)
     puts "Transaction start"
 
-  in PG::Replication::PGOutput::Commit
+  in PG::Replication::Protocol::XLogData(data: PG::Replication::PGOutput::Commit)
     puts "Transaction end"
 
-  in PG::Replication::PGOutput::Insert(oid:, new:)
+  in PG::Replication::Protocol::XLogData(data: PG::Replication::PGOutput::Insert(oid:, new:))
     puts "Insert #{tables[oid][:name]}"
     new.zip(tables[oid][:columns]).each do |tuple, col|
       puts "#{col.name}: #{tuple.data || "NULL"}"
     end
 
-  in PG::Replication::PGOutput::Update(oid:, new:, old:)
+  in PG::Replication::Protocol::XLogData(data: PG::Replication::PGOutput::Update(oid:, new:, old:))
     puts "Update #{tables[oid][:name]}"
     if !old.empty? && new != old
       new.zip(old, tables[oid][:columns]).each do |new, old, col|
@@ -56,10 +56,10 @@ connection.start_pgoutput_replication_slot(slot, publications, messages: true).e
       end
     end
 
-  in PG::Replication::PGOutput::Delete(oid:)
+  in PG::Replication::Protocol::XLogData(data: PG::Replication::PGOutput::Delete(oid:))
     puts "Delete #{tables[oid][:name]}"
 
-  in PG::Replication::PGOutput::Message(prefix:, content:)
+  in PG::Replication::Protocol::XLogData(data: PG::Replication::PGOutput::Message(prefix:, content:))
     puts "Message #{prefix}: #{content}"
 
   else
