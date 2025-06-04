@@ -16,7 +16,7 @@ gem "pg-replication-protocol", require: "pg/replication"
 require "pg"
 require "pg/replication"
 
-# Important to create a connection with the `replication: "database"` flag
+# It is important to create a connection with the `replication: "database"` option
 connection = PG.connect(..., replication: "database")
 
 # Create a publication and a slot (in a real use case the slot will not be temporary)
@@ -27,10 +27,11 @@ connection.query('CREATE_REPLICATION_SLOT some_slot TEMPORARY LOGICAL "pgoutput"
 tables = {}
 
 # Start a pgoutput plugin replication slot message stream
-connection.start_pgoutput_replication_slot(slot, publications).each do |msg|
+# The `messages: true` option is required to be able to decode `PG::Replication::PGOutput::Message`
+connection.start_pgoutput_replication_slot(slot, publications, messages: true).each do |msg|
   case msg
   in PG::Replication::PGOutput::Relation(oid:, name:, columns:)
-    # We receive this message on the first row of each table
+    # This message is received on the first row of each table, or when there are schema changes
     tables[oid] = { name:, columns: }
 
   in PG::Replication::PGOutput::Begin
