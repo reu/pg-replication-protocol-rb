@@ -8,7 +8,7 @@ require_relative "replication/protocol"
 
 module PG
   module Replication
-    def start_replication_slot(slot, logical: true, location: "0/0", **params)
+    def start_replication_slot(slot, logical: true, auto_keep_alive: true, location: "0/0", **params)
       keep_alive_secs = query(<<~SQL).getvalue(0, 0)&.to_i || 10
         SELECT setting FROM pg_catalog.pg_settings WHERE name = 'wal_receiver_status_interval'
       SQL
@@ -29,7 +29,7 @@ module PG
       Enumerator
         .new do |y|
           loop do
-            if Time.now - last_keep_alive > keep_alive_secs
+            if auto_keep_alive && Time.now - last_keep_alive > keep_alive_secs
               standby_status_update(write_lsn: last_processed_lsn)
               last_keep_alive = Time.now
             end
@@ -53,21 +53,21 @@ module PG
           end
         end
         .lazy
-        .filter_map do |msg|
+        .map do |msg|
           case msg
-          in Protocol::XLogData(lsn:, data:)
+          in Protocol::XLogData(lsn:, data:) if auto_keep_alive
             last_processed_lsn = lsn
             standby_status_update(write_lsn: last_processed_lsn)
             last_keep_alive = Time.now
-            data
+            msg
 
-          in Protocol::PrimaryKeepalive(server_time:, asap: true)
+          in Protocol::PrimaryKeepalive(server_time:, asap: true) if auto_keep_alive
             standby_status_update(write_lsn: last_processed_lsn)
             last_keep_alive = Time.now
-            next
+            msg
 
           else
-            next
+            msg
           end
         end
     end
@@ -76,6 +76,14 @@ module PG
       publication_names = publication_names.join(",")
 
       start_replication_slot(slot, **kwargs.merge(proto_version: "1", publication_names:))
+        .filter_map do |msg|
+          case msg
+          in Protocol::XLogData(data:)
+            data
+          else
+            next
+          end
+        end
         .map { |data| data.force_encoding(internal_encoding) }
         .map { |data| PGOutput.read_message(Buffer.from_string(data)) }
     end
