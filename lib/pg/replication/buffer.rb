@@ -19,19 +19,19 @@ module PG
       end
 
       def read_int8
-        read(1).unpack("C").first
+        readbyte
       end
 
       def read_int16
-        read(2).unpack("n").first
+        read_bytes(2).unpack("n").first
       end
 
       def read_int32
-        read(4).unpack("N").first
+        read_bytes(4).unpack("N").first
       end
 
       def read_int64
-        read(8).unpack("Q>").first
+        read_bytes(8).unpack("Q>").first
       end
 
       def read_timestamp
@@ -49,6 +49,14 @@ module PG
             str << chr
           end
         end
+      end
+
+      private
+
+      def read_bytes(n)
+        bytes = read(n)
+        raise EOFError if bytes.nil? || bytes.size < n
+        bytes
       end
     end
   end
