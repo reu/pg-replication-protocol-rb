@@ -48,14 +48,17 @@ module PG
               case (msg = Protocol.read_message(Buffer.new(StringIO.new(data))))
               in Protocol::XLogData(lsn:, data:) if auto_keep_alive
                 y << msg
-                standby_status_update(write_lsn: lsn)
-                @last_confirmed_lsn = lsn
+                standby_status_update(write_lsn: lsn) if lsn > 0
                 last_keep_alive = Time.now
 
-              in Protocol::PrimaryKeepalive(server_time:, asap: true) if auto_keep_alive
-                standby_status_update(write_lsn: @last_confirmed_lsn)
+              in Protocol::PrimaryKeepalive(current_lsn:, server_time:, asap: true) if auto_keep_alive
+                standby_status_update(write_lsn: current_lsn)
                 last_keep_alive = Time.now
                 y << msg
+
+              in Protocol::PrimaryKeepalive(current_lsn:)
+                y << msg
+                @last_confirmed_lsn = [@last_confirmed_lsn, current_lsn].compact.max
 
               else
                 y << msg
