@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    pg-replication-protocol (0.0.5)
+    pg-replication-protocol (0.0.6)
       pg (~> 1.0)
 
 GEM
