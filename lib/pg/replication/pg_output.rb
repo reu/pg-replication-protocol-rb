@@ -13,7 +13,19 @@ module PG
       Update = Data.define(:oid, :key, :old, :new)
       Delete = Data.define(:oid, :key, :old)
       Truncate = Data.define(:oid)
-      Tuple = Data.define(:type, :data)
+      Tuple = Data.define(:type, :data) do
+        def text?
+          type == "t"
+        end
+
+        def binary?
+          type == "b"
+        end
+
+        def toast?
+          type == "u"
+        end
+      end
       Column = Data.define(:flags, :name, :oid, :modifier) do
         def key?
           flags == 1
@@ -150,8 +162,10 @@ module PG
       end
 
       def self.read_tuple(buffer)
-        case buffer.read_char
-        in type if type == "n"
+        case (type = buffer.read_char)
+        in "n"
+          Tuple.new(type:, data: nil)
+        in "u"
           Tuple.new(type:, data: nil)
         in type
           size = buffer.read_int32
