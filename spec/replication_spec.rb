@@ -1,7 +1,7 @@
 require "pg/replication"
 
 RSpec.describe do
-  around(:context) do |ex|
+  around do |ex|
     pg_container = RSpec.configuration.postgres_container
     @pg = PG.connect(
       dbname: pg_container.username,
