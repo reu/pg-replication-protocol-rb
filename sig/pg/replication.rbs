@@ -1,0 +1,283 @@
+module PG
+  module Replication
+    module Protocol
+      class PrimaryKeepalive < ::Data
+        def self.new: (Integer current_lsn, Time server_time, Boolean asap) -> instance
+                    | (current_lsn: Integer, server_time: Time, asap: Boolean) -> instance
+
+        def self.[]: (Integer current_lsn, Time server_time, Boolean asap) -> instance
+                   | (current_lsn: Integer, server_time: Time, asap: Boolean) -> instance
+
+        def self.members: () -> [ :current_lsn, :server_time, :asap ]
+
+        def members: () -> [ :current_lsn, :server_time, :asap ]
+
+        attr_reader current_lsn: Integer
+
+        attr_reader server_time: Time
+
+        attr_reader asap: Boolean
+      end
+
+      class XLogData[T] < ::Data
+        def self.new: (Integer lsn, Integer current_lsn, Time server_time, T data) -> instance
+                    | (lsn: Integer, current_lsn: Integer, server_time: Time, data: T) -> instance
+
+        def self.[]: (Integer lsn, Integer current_lsn, Time server_time, T data) -> instance
+                   | (lsn: Integer, current_lsn: Integer, server_time: Time, data: T) -> instance
+
+        def self.members: () -> [ :lsn, :current_lsn, :server_time, :data ]
+
+        def members: () -> [ :lsn, :current_lsn, :server_time, :data ]
+
+        attr_reader lsn: Integer
+
+        attr_reader current_lsn: Integer
+
+        attr_reader server_time: Time
+
+        attr_reader data: T
+      end
+    end
+
+    module PGOutput
+      class Begin < ::Data
+        def self.new: (Integer final_lsn, Time timestamp, Integer xid) -> instance
+                    | (final_lsn: Integer, timestamp: Time, xid: Integer) -> instance
+
+        def self.[]: (Integer final_lsn, Time timestamp, Integer xid) -> instance
+                   | (final_lsn: Integer, timestamp: Time, xid: Integer) -> instance
+
+        def self.members: () -> [ :final_lsn, :timestamp, :xid ]
+
+        def members: () -> [ :final_lsn, :timestamp, :xid ]
+
+        attr_reader final_lsn: Integer
+
+        attr_reader timestamp: Time
+
+        attr_reader xid: Integer
+      end
+
+      class Column < ::Data
+        def self.new: (Integer flags, String name, Integer oid, Integer modifier) -> instance
+                    | (flags: Integer, name: String, oid: Integer, modifier: Integer) -> instance
+
+        def self.[]: (Integer flags, String name, Integer oid, Integer modifier) -> instance
+                   | (flags: Integer, name: String, oid: Integer, modifier: Integer) -> instance
+
+        def self.members: () -> [ :flags, :name, :oid, :modifier ]
+
+        def members: () -> [ :flags, :name, :oid, :modifier ]
+
+        attr_reader flags: Integer
+
+        attr_reader name: String
+
+        attr_reader oid: Integer
+
+        attr_reader modifier: Integer
+
+        def key?: () -> Boolean
+      end
+
+      class Commit < ::Data
+        def self.new: (Integer lsn, Integer end_lsn, Time timestamp) -> instance
+                    | (lsn: Integer, end_lsn: Integer, timestamp: Time) -> instance
+
+        def self.[]: (Integer lsn, Integer end_lsn, Time timestamp) -> instance
+                   | (lsn: Integer, end_lsn: Integer, timestamp: Time) -> instance
+
+        def self.members: () -> [ :lsn, :end_lsn, :timestamp ]
+
+        def members: () -> [ :lsn, :end_lsn, :timestamp ]
+
+        attr_reader lsn: Integer
+
+        attr_reader end_lsn: Integer
+
+        attr_reader timestamp: Time
+      end
+
+      class Delete < ::Data
+        def self.new: (Integer oid, Array[String] key, Array[String] old) -> instance
+                    | (oid: Integer, key: Array[String], old: Array[String]) -> instance
+
+        def self.[]: (Integer oid, Array[String] key, Array[String] old) -> instance
+                   | (oid: Integer, key: Array[String], old: Array[String]) -> instance
+
+        def self.members: () -> [ :oid, :key, :old ]
+
+        def members: () -> [ :oid, :key, :old ]
+
+        attr_reader oid: Integer
+
+        attr_reader key: Array[String]
+
+        attr_reader old: Array[String]
+      end
+
+      class Insert < ::Data
+        def self.new: (Integer oid, Array[String] new) -> instance
+                    | (oid: Integer, new: Array[String]) -> instance
+
+        def self.[]: (Integer oid, Array[String] new) -> instance
+                   | (oid: Integer, new: Array[String]) -> instance
+
+        def self.members: () -> [ :oid, :new ]
+
+        def members: () -> [ :oid, :new ]
+
+        attr_reader oid: Integer
+
+        attr_reader new: Array[String]
+      end
+
+      class Message < ::Data
+        def self.new: (Boolean transactional, Integer lsn, String? prefix, String? content) -> instance
+                    | (transactional: Boolean, lsn: Integer, prefix: String?, content: String?) -> instance
+
+        def self.[]: (Boolean transactional, Integer lsn, String? prefix, String? content) -> instance
+                   | (transactional: Boolean, lsn: Integer, prefix: String?, content: String?) -> instance
+
+        def self.members: () -> [ :transactional, :lsn, :prefix, :content ]
+
+        def members: () -> [ :transactional, :lsn, :prefix, :content ]
+
+        attr_reader transactional: Boolean
+
+        attr_reader lsn: Integer
+
+        attr_reader prefix: String?
+
+        attr_reader content: String?
+      end
+
+      class Origin < ::Data
+        def self.new: (Integer commit_lsn, String name) -> instance
+                    | (commit_lsn: Integer, name: String) -> instance
+
+        def self.[]: (Integer commit_lsn, String name) -> instance
+                   | (commit_lsn: Integer, name: String) -> instance
+
+        def self.members: () -> [ :commit_lsn, :name ]
+
+        def members: () -> [ :commit_lsn, :name ]
+
+        attr_reader commit_lsn: Integer
+
+        attr_reader name: String
+      end
+
+      class Relation < ::Data
+        def self.new: (Integer oid, String namespace, String name, String replica_identity, Array[PG::Replication::PGOutput::Column] columns) -> instance
+                    | (oid: Integer, namespace: String, name: String, replica_identity: String, columns: Array[PG::Replication::PGOutput::Column]) -> instance
+
+        def self.[]: (Integer oid, String namespace, String name, String replica_identity, Array[PG::Replication::PGOutput::Column] columns) -> instance
+                   | (oid: Integer, namespace: String, name: String, replica_identity: String, columns: Array[PG::Replication::PGOutput::Column]) -> instance
+
+        def self.members: () -> [ :oid, :namespace, :name, :replica_identity, :columns ]
+
+        def members: () -> [ :oid, :namespace, :name, :replica_identity, :columns ]
+
+        attr_reader oid: Integer
+
+        attr_reader namespace: String
+
+        attr_reader name: String
+
+        attr_reader replica_identity: String
+
+        attr_reader columns: Array[PG::Replication::PGOutput::Column]
+      end
+
+      class Truncate < ::Data
+        def self.new: (Integer oid) -> instance
+                    | (oid: Integer) -> instance
+
+        def self.[]: (Integer oid) -> instance
+                   | (oid: Integer) -> instance
+
+        def self.members: () -> [ :oid ]
+
+        def members: () -> [ :oid ]
+
+        attr_reader oid: Integer
+      end
+
+      class Tuple < ::Data
+        def self.new: (String type, String? data) -> instance
+                    | (type: String, data: String?) -> instance
+
+        def self.[]: (String type, String? data) -> instance
+                   | (type: String, data: String?) -> instance
+
+        def self.members: () -> [ :type, :data ]
+
+        def members: () -> [ :type, :data ]
+
+        attr_reader type: String
+
+        attr_reader data: String?
+
+        def text?: () -> Boolean
+
+        def binary?: () -> Boolean
+
+        def toast?: () -> Boolean
+      end
+
+      class Type < ::Data
+        def self.new: (Integer oid, String namespace, String name) -> instance
+                    | (oid: Integer, namespace: String, name: String) -> instance
+
+        def self.[]: (Integer oid, String namespace, String name) -> instance
+                   | (oid: Integer, namespace: String, name: String) -> instance
+
+        def self.members: () -> [ :oid, :namespace, :name ]
+
+        def members: () -> [ :oid, :namespace, :name ]
+
+        attr_reader oid: Integer
+
+        attr_reader namespace: String
+
+        attr_reader name: String
+      end
+
+      class Update < ::Data
+        def self.new: (Integer oid, Array[String] key, Array[String] old, Array[String] new) -> instance
+                    | (oid: Integer, key: Array[String], old: Array[String], new: Array[String]) -> instance
+
+        def self.[]: (Integer oid, Array[String] key, Array[String] old, Array[String] new) -> instance
+                   | (oid: Integer, key: Array[String], old: Array[String], new: Array[String]) -> instance
+
+        def self.members: () -> [ :oid, :key, :old, :new ]
+
+        def members: () -> [ :oid, :key, :old, :new ]
+
+        attr_reader oid: Integer
+
+        attr_reader key: Array[String]
+
+        attr_reader old: Array[String]
+
+        attr_reader new: Array[String]
+      end
+    end
+
+    @last_confirmed_lsn: Integer?
+
+    def start_replication_slot: (String slot, ?logical: bool, ?auto_keep_alive: bool, ?location: ::String, **untyped params) -> Enumerator::Lazy[PG::Replication::Protocol::PrimaryKeepalive | PG::Replication::Protocol::XLogData[String]]
+
+    def start_pgoutput_replication_slot: (String slot, Array[String] publication_names, **untyped kwargs) -> Enumerator::Lazy[PG::Replication::Protocol::PrimaryKeepalive | PG::Replication::Protocol::XLogData[PG::Replication::PGOutput]]
+
+    def standby_status_update: (write_lsn: Integer, ?flush_lsn: Integer, ?apply_lsn: Integer, ?timestamp: Time, ?reply: bool) -> void
+
+    def last_confirmed_lsn: () -> Integer?
+
+    def wal_receiver_status_interval: () -> Integer
+
+    def confirmed_slot_lsn: (String slot) -> Integer?
+  end
+end

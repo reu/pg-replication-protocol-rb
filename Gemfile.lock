@@ -7,14 +7,18 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
+    base64 (0.3.0)
     diff-lcs (1.5.1)
     docker-api (2.4.0)
       excon (>= 0.64.0)
       multi_json
     excon (1.2.1)
+    logger (1.7.0)
     multi_json (1.15.0)
     pg (1.5.9)
     rake (13.2.1)
+    rbs (3.9.4)
+      logger
     rspec (3.13.0)
       rspec-core (~> 3.13.0)
       rspec-expectations (~> 3.13.0)
@@ -38,8 +42,10 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  base64
   pg-replication-protocol!
   rake (~> 13.0)
+  rbs
   rspec (~> 3.0)
   testcontainers-postgres
 
