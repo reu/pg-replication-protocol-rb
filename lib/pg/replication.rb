@@ -45,7 +45,7 @@ module PG
               next
 
             in data
-              case (msg = Protocol.read_message(Buffer.new(StringIO.new(data))))
+              case (msg = Protocol.read_message(Buffer.new(data)))
               in Protocol::XLogData(lsn:, data:) if auto_keep_alive
                 y << msg
                 standby_status_update(write_lsn: lsn) if lsn > 0
@@ -96,7 +96,7 @@ module PG
         write_lsn,
         flush_lsn,
         apply_lsn,
-        (timestamp - Time.new(2_000, 1, 1, 0, 0, 0, 0)) * 10**6,
+        ((timestamp.to_r - POSTGRES_EPOCH.to_r) * 1_000_000).to_i,
         reply ? 1 : 0,
       ].pack("CQ>Q>Q>Q>C")
 

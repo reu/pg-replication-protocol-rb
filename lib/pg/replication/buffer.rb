@@ -1,21 +1,54 @@
 # frozen_string_literal: true
 
-require "delegate"
-require "stringio"
-
 module PG
   module Replication
-    class Buffer < SimpleDelegator
+    # PostgreSQL epoch (2000-01-01) cached for timestamp calculations
+    POSTGRES_EPOCH = Time.utc(2000, 1, 1).freeze
+    POSTGRES_EPOCH_USECS = (POSTGRES_EPOCH.to_r * 1_000_000).to_i
+
+    # High-performance buffer for parsing binary protocol data.
+    # Works directly with strings and tracks position internally,
+    # avoiding StringIO/SimpleDelegator overhead.
+    class Buffer
+      def initialize(data)
+        @data = data.b # Ensure binary encoding
+        @pos = 0
+      end
+
       def self.from_string(str)
-        new(StringIO.new(str))
+        new(str)
+      end
+
+      def eof?
+        @pos >= @data.bytesize
+      end
+
+      def read(n = nil)
+        return nil if @pos >= @data.bytesize
+        if n.nil?
+          # Read all remaining bytes
+          result = @data.byteslice(@pos..-1)
+          @pos = @data.bytesize
+        else
+          result = @data.byteslice(@pos, n)
+          @pos += result.bytesize
+        end
+        result
+      end
+
+      def readbyte
+        raise EOFError if @pos >= @data.bytesize
+        byte = @data.getbyte(@pos)
+        @pos += 1
+        byte
       end
 
       def read_char
-        read_int8.chr
+        readbyte.chr
       end
 
       def read_bool
-        read_int8 == 1
+        readbyte == 1
       end
 
       def read_int8
@@ -23,40 +56,39 @@ module PG
       end
 
       def read_int16
-        read_bytes(2).unpack("n").first
+        read_bytes(2).unpack1("n")
       end
 
       def read_int32
-        read_bytes(4).unpack("N").first
+        read_bytes(4).unpack1("N")
       end
 
       def read_int64
-        read_bytes(8).unpack("Q>").first
+        read_bytes(8).unpack1("Q>")
       end
 
       def read_timestamp
-        usecs = Time.new(2_000, 1, 1, 0, 0, 0, 0).to_i * 10**6 + read_int64
-        Time.at(usecs / 10**6, usecs % 10**6, :microsecond)
+        usecs = POSTGRES_EPOCH_USECS + read_int64
+        Time.at(usecs / 1_000_000, usecs % 1_000_000, :microsecond, in: "UTC")
       end
 
       def read_cstring
-        str = String.new
-        loop do
-          case read_char
-          in "\0"
-            return str
-          in chr
-            str << chr
-          end
-        end
+        # Find null terminator position from current offset
+        null_pos = @data.index("\0", @pos)
+        raise EOFError, "Unterminated C-string" if null_pos.nil?
+
+        str = @data.byteslice(@pos, null_pos - @pos)
+        @pos = null_pos + 1 # Skip past null terminator
+        str
       end
 
       private
 
       def read_bytes(n)
-        bytes = read(n)
-        raise EOFError if bytes.nil? || bytes.size < n
-        bytes
+        raise EOFError if @pos + n > @data.bytesize
+        result = @data.byteslice(@pos, n)
+        @pos += n
+        result
       end
     end
   end
