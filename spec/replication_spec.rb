@@ -220,5 +220,28 @@ RSpec.describe do
       # Note: This test verifies error propagation - the exact error may vary
       # We primarily want to ensure the enumerator doesn't hang forever
     end
+
+    it "stops replication cleanly when stop_replication is called" do
+      @pg.query("BEGIN")
+      5.times { |i| @pg.query("INSERT INTO test VALUES (#{i})") }
+      @pg.query("COMMIT")
+
+      messages = @pg.start_replication_slot("keepalive_slot")
+      received = []
+
+      # Stop replication after receiving a couple messages
+      Thread.new do
+        sleep(0.2)
+        @pg.stop_replication
+      end
+
+      # This should exit cleanly without hanging
+      messages.each do |msg|
+        received << msg
+      end
+
+      # Should have received at least some messages before stopping
+      expect(received).not_to be_empty
+    end
   end
 end

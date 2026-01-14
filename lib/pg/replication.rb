@@ -77,6 +77,12 @@ module PG
       status_update_mutex.synchronize { @last_confirmed_lsn }
     end
 
+    def stop_replication
+      status_update_mutex.synchronize do
+        put_copy_end
+      end
+    end
+
     def wal_receiver_status_interval
       query(<<~SQL).getvalue(0, 0)&.to_i || 10
         SELECT setting FROM pg_catalog.pg_settings WHERE name = 'wal_receiver_status_interval'
