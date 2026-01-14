@@ -133,7 +133,7 @@ module PG
             end
 
           else
-            msg = Protocol.read_message(Buffer.new(data))
+            msg = Protocol.read_message(Buffer.from_string(data))
 
             if msg.is_a?(Protocol::PrimaryKeepalive) && msg.asap
               conn.standby_status_update(write_lsn: msg.current_lsn)

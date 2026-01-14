@@ -2,21 +2,17 @@
 
 module PG
   module Replication
-    # PostgreSQL epoch (2000-01-01) cached for timestamp calculations
     POSTGRES_EPOCH = Time.utc(2000, 1, 1).freeze
     POSTGRES_EPOCH_USECS = (POSTGRES_EPOCH.to_r * 1_000_000).to_i
 
-    # High-performance buffer for parsing binary protocol data.
-    # Works directly with strings and tracks position internally,
-    # avoiding StringIO/SimpleDelegator overhead.
     class Buffer
       def initialize(data)
-        @data = data.b # Ensure binary encoding
+        @data = data
         @pos = 0
       end
 
       def self.from_string(str)
-        new(str)
+        new(str.b)
       end
 
       def eof?
@@ -26,7 +22,6 @@ module PG
       def read(n = nil)
         return nil if @pos >= @data.bytesize
         if n.nil?
-          # Read all remaining bytes
           result = @data.byteslice(@pos..-1)
           @pos = @data.bytesize
         else
@@ -73,7 +68,6 @@ module PG
       end
 
       def read_cstring
-        # Find null terminator position from current offset
         null_pos = @data.index("\0", @pos)
         raise EOFError, "Unterminated C-string" if null_pos.nil?
 
